@@ -1,10 +1,11 @@
 import os
 import csv
 import io
-import openai
 from flask import Flask, request, render_template, redirect, url_for, flash
 from dotenv import load_dotenv
 import pandas as pd
+from openai import OpenAI
+
 
 AI_PROMPT_TEMPLATE = """You are a biotech analyst. Based on public information, generate 3 fictional but realistic programs targeting {target} using {modality}. Return as CSV with the columns:
 company,program,development_stage,target,expected_ind_date,has_in_vivo_data,has_in_vitro_data,modality,received_pre_ind_feedback,ind_enabling_studies_done. Dates should be in YYYY-MM-DD. Use TRUE/FALSE for booleans.
@@ -13,7 +14,9 @@ company,program,development_stage,target,expected_ind_date,has_in_vivo_data,has_
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "your-secret-key-here")
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+)
 
 @app.route("/")
 def index():
@@ -59,7 +62,7 @@ def ai_search():
     try:
         prompt = AI_PROMPT_TEMPLATE.format(target=target, modality=modality)
 
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
