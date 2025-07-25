@@ -1,15 +1,12 @@
 # Biotech DMS Flask API
 
-## Endpoints
-
-- POST `/upload` — Upload CSV and return DMS scores
-- POST `/ai-search` — Use OpenAI to search and summarize programs for a given target + modality
-
 ## Setup
+
+Create a `.env` file and add `OPENAI_API_KEY=yo-key`
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env
-# Add your OpenAI key to .env
+
 python app.py
 ```
+
