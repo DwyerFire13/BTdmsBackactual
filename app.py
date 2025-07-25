@@ -2,24 +2,34 @@ import os
 import csv
 import io
 import openai
-from flask import Flask, request, jsonify
+from flask import Flask, request, render_template, redirect, url_for, flash
 from dotenv import load_dotenv
 import pandas as pd
-from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "your-secret-key-here")
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
+
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 @app.route("/upload", methods=["POST"])
 def upload():
     file = request.files.get("file")
     if not file:
-        return jsonify({"error": "No file uploaded"}), 400
+        flash("No file uploaded", "error")
+        return redirect(url_for("index"))
 
-    df = pd.read_csv(file)
-    df["score"] = df.apply(compute_score, axis=1)
-    return jsonify(df.to_dict(orient="records"))
+    try:
+        df = pd.read_csv(file)
+        df["score"] = df.apply(compute_score, axis=1)
+        rows = df.to_dict(orient="records")
+        return render_template("index.html", rows=rows)
+    except Exception as e:
+        flash(f"Error processing file: {str(e)}", "error")
+        return redirect(url_for("index"))
 
 def compute_score(row):
     score = 100
@@ -35,27 +45,34 @@ def compute_score(row):
 
 @app.route("/ai-search", methods=["POST"])
 def ai_search():
-    data = request.json
-    target = data.get("target", "")
-    modality = data.get("modality", "")
+    target = request.form.get("target", "")
+    modality = request.form.get("modality", "")
+    
+    if not target or not modality:
+        flash("Please provide both target and modality", "error")
+        return redirect(url_for("index"))
 
-    prompt = f"""You are a biotech analyst. Based on public information, generate 3 fictional but realistic programs targeting {target} using {modality}. Return as CSV with the columns:
+    try:
+        prompt = f"""You are a biotech analyst. Based on public information, generate 3 fictional but realistic programs targeting {target} using {modality}. Return as CSV with the columns:
 company,program,development_stage,target,expected_ind_date,has_in_vivo_data,has_in_vitro_data,modality,received_pre_ind_feedback,ind_enabling_studies_done. Dates should be in YYYY-MM-DD. Use TRUE/FALSE for booleans.
 """
 
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=500
-    )
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=500
+        )
 
-    csv_data = response["choices"][0]["message"]["content"]
+        csv_data = response["choices"][0]["message"]["content"]
 
-    # Parse CSV
-    reader = csv.DictReader(io.StringIO(csv_data))
-    rows = list(reader)
-    return jsonify(rows)
+        # Parse CSV
+        reader = csv.DictReader(io.StringIO(csv_data))
+        ai_results = list(reader)
+        return render_template("index.html", ai_results=ai_results, target=target, modality=modality)
+    except Exception as e:
+        flash(f"Error generating AI results: {str(e)}", "error")
+        return redirect(url_for("index"))
 
 if __name__ == "__main__":
     app.run(debug=True)
