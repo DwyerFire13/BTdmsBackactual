@@ -69,7 +69,7 @@ def ai_search():
             max_tokens=500
         )
 
-        csv_data = response["choices"][0]["message"]["content"]
+        csv_data = response.choices[0].message.content
 
         # Parse CSV
         reader = csv.DictReader(io.StringIO(csv_data))
