@@ -6,6 +6,10 @@ from flask import Flask, request, render_template, redirect, url_for, flash
 from dotenv import load_dotenv
 import pandas as pd
 
+AI_PROMPT_TEMPLATE = """You are a biotech analyst. Based on public information, generate 3 fictional but realistic programs targeting {target} using {modality}. Return as CSV with the columns:
+company,program,development_stage,target,expected_ind_date,has_in_vivo_data,has_in_vitro_data,modality,received_pre_ind_feedback,ind_enabling_studies_done. Dates should be in YYYY-MM-DD. Use TRUE/FALSE for booleans.
+"""
+
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "your-secret-key-here")
 load_dotenv()
@@ -53,9 +57,7 @@ def ai_search():
         return redirect(url_for("index"))
 
     try:
-        prompt = f"""You are a biotech analyst. Based on public information, generate 3 fictional but realistic programs targeting {target} using {modality}. Return as CSV with the columns:
-company,program,development_stage,target,expected_ind_date,has_in_vivo_data,has_in_vitro_data,modality,received_pre_ind_feedback,ind_enabling_studies_done. Dates should be in YYYY-MM-DD. Use TRUE/FALSE for booleans.
-"""
+        prompt = AI_PROMPT_TEMPLATE.format(target=target, modality=modality)
 
         response = openai.ChatCompletion.create(
             model="gpt-4",
