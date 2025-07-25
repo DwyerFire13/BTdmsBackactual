@@ -10,6 +10,10 @@ from openai import OpenAI
 AI_PROMPT_TEMPLATE = """You are a biotech analyst. Based on public information, generate 3 fictional but realistic programs targeting {target} using {modality}. Return as CSV with the columns:
 company,program,development_stage,target,expected_ind_date,has_in_vivo_data,has_in_vitro_data,modality,received_pre_ind_feedback,ind_enabling_studies_done. Dates should be in YYYY-MM-DD. Use TRUE/FALSE for booleans.
 """
+TEMPERATURE = 0.7
+MODEL = "gpt-4"
+MAX_TOKENS = 500
+
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "your-secret-key-here")
@@ -67,10 +71,10 @@ def ai_search():
         prompt = AI_PROMPT_TEMPLATE.format(target=target, modality=modality)
 
         response = client.chat.completions.create(
-            model="gpt-4",
+            model=MODEL,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=500,
+            temperature=TEMPERATURE,
+            max_tokens=MAX_TOKENS,
         )
 
         csv_data = response.choices[0].message.content
